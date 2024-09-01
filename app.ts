@@ -4,10 +4,12 @@ import { Application, Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 const kv = await Deno.openKv();
 
 // Function to get the next ID
-async function getNextId(): Promise<number> {
+async function getNextId(): Promise<string> {
   const key = ["counter"];
-  const result = await kv.atomic().sum(key, 1n).commit();
-  return Number(result.value);
+  const result = await kv.get<number>(key);
+  const nextId = (result.value ?? 0) + 1;
+  await kv.set(key, nextId);
+  return nextId.toString();
 }
 
 const app = new Application();
@@ -17,7 +19,7 @@ const router = new Router();
 router.post("/items", async (ctx) => {
   const { data } = await ctx.request.body().value;
   const id = await getNextId();
-  await kv.set(["items", id.toString()], data);
+  await kv.set(["items", id], data);
   ctx.response.body = { id, data };
 });
 
@@ -48,19 +50,16 @@ router.delete("/items/:id", async (ctx) => {
 });
 
 // List all
-router.get("/items", listItems);
-router.get("/", listItems);
-
-// List all items function
-async function listItems(ctx: RouterContext<"/items" | "/">) {
+router.get("/items", async (ctx) => {
   const items = [];
   for await (const entry of kv.list({ prefix: ["items"] })) {
     items.push({ id: entry.key[1], data: entry.value });
   }
   ctx.response.body = items;
-}
+});
 
 app.use(router.routes());
 app.use(router.allowedMethods());
-
+console.log("Starting server...");
 await app.listen({ port: 8000 });
+console.log("Server is running on http://localhost:8000");
