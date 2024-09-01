@@ -1,4 +1,4 @@
-import { Application, Router, send } from "https://deno.land/x/oak@v12.6.1/mod.ts";
+import { Application, Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 import { load } from "https://deno.land/std@0.224.0/dotenv/mod.ts";
 
 const env = await load();
@@ -113,6 +113,69 @@ router.get("/clear-all", (ctx) => {
     </body>
     </html>
   `;
+});
+
+// Add a new route for the download page
+router.get("/download", (ctx) => {
+  ctx.response.body = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Download KV Database</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body>
+        <button id="downloadButton">Download Database</button>
+
+        <script>
+            document.getElementById('downloadButton').addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/download');
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'kv_database.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while downloading the database');
+                }
+            });
+        </script>
+    </body>
+    </html>
+  `;
+});
+
+// Add a new route to handle the download request
+router.get("/api/download", async (ctx) => {
+  const items = [];
+  for await (const entry of kv.list({ prefix: [] })) {
+    items.push(entry.value);
+  }
+  ctx.response.headers.set("Content-Type", "application/json");
+  ctx.response.headers.set("Content-Disposition", "attachment; filename=kv_database.json");
+  ctx.response.body = JSON.stringify(items, null, 2);
 });
 
 app.use(router.routes());
