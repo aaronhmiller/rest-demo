@@ -40,13 +40,17 @@ router.delete("/items/:id", async (ctx) => {
 });
 
 // List all
-router.get("/items", async (ctx) => {
+router.get("/items", listItems);
+router.get("/", listItems);
+
+// List all items function
+async function listItems(ctx: RouterContext<"/items" | "/">) {
   const items = [];
   for await (const entry of kv.list({ prefix: ["items"] })) {
     items.push({ id: entry.key[1], data: entry.value });
   }
   ctx.response.body = items;
-});
+}
 
 app.use(router.routes());
 app.use(router.allowedMethods());
