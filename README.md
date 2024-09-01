@@ -1,7 +1,7 @@
 # rest-demo
 Cursor sourced Deno CRUD app
-example running here: https://aaronmiller-rest-demo-81.deno.dev
-to run locally, use:
+example running here: https://aaronmiller-rest-demo-81.deno.dev<br>
+to run locally, use:<br>
 `deno run --unstable-kv --env -A app-local.ts`
 
 POST:
